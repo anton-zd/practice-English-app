@@ -1,0 +1,119 @@
+#include <Servo.h>
+
+Servo servo_motor;
+int servoButtonPin = 5;    // Pin for the servo control button
+int servoPos = 0;          // Servo position
+bool servoDirection = true; // True for forward, false for backward
+bool buttonState = HIGH;
+bool lastButtonState = HIGH;
+
+// Display and buzzer pins
+int f = 13;
+int g = 12;
+int e = 11;
+int d = 10;
+int c = 9;
+int b = 8;
+int a = 7;
+int dec = 6;
+const int BuzzerPin = 3;
+const int startButtonPin = 4;  // Button to start the reverse timer
+
+int n[16][7] = {
+  {1, 1, 1, 1, 1, 1, 0}, /*0*/
+  {0, 1, 1, 0, 0, 0, 0}, /*1*/
+  {1, 1, 0, 1, 1, 0, 1}, /*2*/
+  {1, 1, 1, 1, 0, 0, 1}, /*3*/
+  {0, 1, 1, 0, 0, 1, 1}, /*4*/
+  {1, 0, 1, 1, 0, 1, 1}, /*5*/
+  {1, 0, 1, 1, 1, 1, 1}, /*6*/
+  {1, 1, 1, 0, 0, 0, 0}, /*7*/
+  {1, 1, 1, 1, 1, 1, 1}, /*8*/
+  {1, 1, 1, 1, 0, 1, 1}, /*9*/
+  {1, 1, 1, 0, 1, 1, 1}, /*A*/
+  {0, 0, 1, 1, 1, 1, 1}, /*b*/
+  {1, 0, 0, 1, 1, 1, 0}, /*C*/
+  {0, 1, 1, 1, 1, 0, 1}, /*d*/
+  {1, 0, 0, 1, 1, 1, 1}, /*E*/
+  {1, 0, 0, 0, 1, 1, 1}  /*F*/
+};
+
+void setup()
+{
+  // Setup for display
+  pinMode(f, OUTPUT);
+  pinMode(g, OUTPUT);
+  pinMode(e, OUTPUT);
+  pinMode(d, OUTPUT);
+  pinMode(c, OUTPUT);
+  pinMode(b, OUTPUT);
+  pinMode(a, OUTPUT);
+  pinMode(dec, OUTPUT);
+  pinMode(BuzzerPin, OUTPUT);
+  pinMode(startButtonPin, INPUT_PULLUP);  // Start button
+  Serial.begin(9600);
+
+  // Setup for servo
+  servo_motor.attach(2);            // Attach servo to pin 2
+  pinMode(servoButtonPin, INPUT_PULLUP);  // Servo control button
+  servo_motor.write(servoPos);      // Start servo at initial position
+}
+
+void loop()
+{
+  // Handle servo control button
+  buttonState = digitalRead(servoButtonPin);
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    servoDirection = !servoDirection;  // Toggle direction
+    delay(50);  // Debounce delay
+  }
+  lastButtonState = buttonState;
+
+  // Move the servo based on direction
+  if (servoDirection) {
+    servoPos += 1;  // Move forward
+    if (servoPos >= 90) servoPos = 90;
+  } else {
+    servoPos -= 1;  // Move backward
+    if (servoPos <= 0) servoPos = 0;
+  }
+  servo_motor.write(servoPos);  // Update servo position
+  delay(15);  // Delay for smooth movement
+
+  // Handle reverse timer button
+  int startButtonState = digitalRead(startButtonPin);
+  if (startButtonState == LOW) {
+    startReverseTimer(5);  // Start reverse timer
+  }
+}
+
+void startReverseTimer(int time) {
+  for (int i = 0; i < time; i++) {
+    num(time - i);
+    digitalWrite(dec, HIGH);
+    Serial.print("Counter-Reverse: ");
+    Serial.println(time - i);
+
+    // Piezo buzzer sounds at each step
+    tone(BuzzerPin, 1000);   // Start piezo sound
+    delay(500);              // Hold sound for 500ms
+    noTone(BuzzerPin);       // Stop piezo sound
+
+    delay(500);              // Delay for remaining time (1 second total per step)
+  }
+  Serial.print("Counter-Reverse: Reset to ");
+  num(0); // Set display to zero at end
+  tone(BuzzerPin, 2000); // Buzzer alert at end of countdown
+  delay(1000);
+  noTone(BuzzerPin);
+}
+
+void num(int i) {
+  digitalWrite(a, n[i][0]);
+  digitalWrite(b, n[i][1]);
+  digitalWrite(c, n[i][2]);
+  digitalWrite(d, n[i][3]);
+  digitalWrite(e, n[i][4]);
+  digitalWrite(f, n[i][5]);
+  digitalWrite(g, n[i][6]);
+}
